@@ -1,0 +1,14 @@
+version: '3.9'
+
+services:
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: always
+    networks:
+      net:
+    command: tunnel --no-autoupdate run --token ${CLOUDFLARED_TOKEN}
+    deploy:
+      resources:
+        limits:
+          cpus: '0.1'
+          memory: 50M

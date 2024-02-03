@@ -1,0 +1,42 @@
+version: '3.9'
+
+services:
+  guacd:
+    image: dushixiang/guacd:1.4.0
+    networks:
+      net:
+    volumes:
+      - ${DATA_DIR:-./data}/next-terminal:/usr/local/next-terminal/data
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 50M
+        reservations:
+          cpus: '0.1'
+          memory: 10M
+  next-terminal:
+    image: dushixiang/next-terminal:v1.3.8
+    networks:
+      net:
+    ports:
+      - "8088:8088"
+    environment:
+      DB: sqlite
+      GUACD_HOSTNAME: guacd
+      GUACD_PORT: 4822
+    volumes:
+      - ${DATA_DIR:-./data}/next-terminal:/usr/local/next-terminal/data
+    restart: always
+    depends_on:
+      - guacd
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 50M
+        reservations:
+          cpus: '0.1'
+          memory: 20M
+
