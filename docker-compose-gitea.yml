@@ -2,7 +2,7 @@ version: '3.9'
 
 services:
   gitea:
-    image: gitea/gitea:1.20.6
+    image: gitea/gitea:1.21.5
     restart: always
     networks:
       net:
