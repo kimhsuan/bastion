@@ -11,7 +11,6 @@ function echo_yellow() {
 function get_compose_file_cmd() {
   SERVICE=$1
   if [ "${SERVICE}" ]; then
-    COMPOSE_CMD+=" -f docker-compose-network.yml"
     case "${SERVICE}" in
     cloudflared)
       COMPOSE_CMD+=" -f docker-compose-${SERVICE}.yml"
@@ -25,7 +24,7 @@ function get_compose_file_cmd() {
     esac
     echo "${COMPOSE_CMD}"
   else
-    echo ${USAGE}
+    echo "Please provide a service name"
     exit 1
   fi
 }

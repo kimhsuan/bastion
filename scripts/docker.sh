@@ -23,6 +23,18 @@ function install_docker() {
   fi
 }
 
+function check_docker_network() {
+  NETWORK_NAME=${1:-"net"}
+  DOCKER_SUBNET=${2:-172.28.0.0/24}
+  if ! docker network ls | grep -q ${NETWORK_NAME}; then
+    echo_yellow "Docker network ${NETWORK_NAME} not found, creating..."
+    docker network create \
+      --driver=bridge \
+      --subnet=${DOCKER_SUBNET} \
+      ${NETWORK_NAME}
+  fi
+}
+
 function check_docker() {
   command -v ${DOCKER_CMD} &> /dev/null || {
     install_docker

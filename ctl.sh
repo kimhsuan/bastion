@@ -9,12 +9,11 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 ENV="${DIR}/.env"
 DOCKER_CMD="docker"
 COMPOSE_CMD="docker compose"
-USAGE="Usage: $0 {start|stop|restart|status} {service}"
 DATA_DIR="${DIR}/data"
 
 . ${ENV}
 
-source ${DIR}/scripts/install_docker.sh
+source ${DIR}/scripts/docker.sh
 source ${DIR}/scripts/functions.sh
 
 function start() {
@@ -27,6 +26,7 @@ function stop() {
 
 function main() {
   check_docker
+  check_docker_network ${NETWORK_NAME} ${DOCKER_SUBNET}
   SERVICE=${service}
   EXE=$(get_compose_file_cmd ${SERVICE})
   echo ${EXE}
@@ -43,7 +43,7 @@ function main() {
     start
     ;;
   *)
-    echo ${USAGE}
+    echo -e "Usage: $0 {start|stop|restart|status} {service}"
     ;;
   esac
 }

@@ -1,5 +1,9 @@
 version: '3.9'
 
+networks:
+  net:
+    external: true
+
 services:
   cloudflared:
     image: cloudflare/cloudflared:latest
