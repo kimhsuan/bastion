@@ -1,0 +1,22 @@
+version: '3.9'
+
+networks:
+  net:
+    external: true
+
+services:
+  openresty:
+    image: openresty/openresty:1.25.3.1-2-bookworm
+    restart: always
+    networks:
+      net:
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 50M
+        reservations:
+          cpus: '0.1'
+          memory: 10M

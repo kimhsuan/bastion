@@ -21,6 +21,9 @@ function get_compose_file_cmd() {
     gitea)
       COMPOSE_CMD+=" -f docker-compose-${SERVICE}.yml"
       ;;
+    openresty)
+      COMPOSE_CMD+=" -f docker-compose-${SERVICE}.yml"
+      ;;
     esac
     echo "${COMPOSE_CMD}"
   else
