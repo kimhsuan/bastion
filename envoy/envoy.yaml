@@ -24,17 +24,17 @@ static_resources:
                   "remote_addr": "%DOWNSTREAM_DIRECT_REMOTE_ADDRESS_WITHOUT_PORT%"
                   "x_forwarded_for": "%REQ(X-FORWARDED-FOR)%"
                   "request_method": "%REQ(:METHOD)%"
-                  "scheme": "%REQ(:SCHEME)%"
-                  "host": "%REQ(:AUTHORITY)%"
+                  "scheme": "%REQ(x-downstream-scheme)%"
+                  "host": "%REQ(x-original-authority)%"
                   "server_port": "%DOWNSTREAM_LOCAL_PORT%"
-                  "request_uri": "%REQ(X-ORIGINAL-PATH)%"
-                  "is_args": "%REQ(:QUERY)%"
-                  "args": "%REQ(:QUERY)%"
-                  "query_string": "%REQ(:QUERY)%"
+                  "request_uri": "%REQ(x-original-path)%"
+                  "is_args": "%REQ(x-is-args)%"
+                  "args": "%REQ(x-args)%"
+                  "query_string": "%REQ(x-query-string)%"
                   "server_protocol": "%PROTOCOL%"
                   "bytes_sent": "%BYTES_SENT%"
                   "request_time": "%DURATION%"
-                  "proxy_host": "%UPSTREAM_HOST%"
+                  "proxy_host": "%REQ(x-target-host)%"
                   "upstream_host": "%UPSTREAM_HOST%"
                   "upstream_status": "%RESPONSE_CODE%"
                   "upstream_response_time": "%RESP(X-ENVOY-UPSTREAM-SERVICE-TIME)%"
@@ -55,11 +55,6 @@ static_resources:
                   safe_regex:
                     google_re2: {}
                     regex: "^/https://([^/]+)(/.*)?$"
-                request_headers_to_add:
-                - header:
-                    key: "x-original-path"
-                    value: "%REQ(:PATH)%"
-                  append_action: OVERWRITE_IF_EXISTS_OR_ADD
                 route:
                   cluster: dynamic_forward_proxy_cluster_https
                   host_rewrite_path_regex:
@@ -79,11 +74,6 @@ static_resources:
                   safe_regex:
                     google_re2: {}
                     regex: "^/http://([^/]+)(/.*)?$"
-                request_headers_to_add:
-                - header:
-                    key: "x-original-path"
-                    value: "%REQ(:PATH)%"
-                  append_action: OVERWRITE_IF_EXISTS_OR_ADD
                 route:
                   cluster: dynamic_forward_proxy_cluster_http
                   host_rewrite_path_regex:
@@ -97,6 +87,59 @@ static_resources:
                       regex: "^/http://([^/]+)(/.*)?$"
                     substitution: "\\2"
           http_filters:
+          # ---------------------------------------------------------
+          # Lua (normalize log fields to match Nginx semantics)
+          # ---------------------------------------------------------
+          - name: envoy.filters.http.lua
+            typed_config:
+              "@type": type.googleapis.com/envoy.extensions.filters.http.lua.v3.Lua
+              inline_code: |
+                local function ensure(headers, key, value)
+                  if value == nil then
+                    value = "-"
+                  end
+                  headers:replace(key, value)
+                end
+
+                function envoy_on_request(handle)
+                  local headers = handle:headers()
+                  local authority = headers:get(":authority") or headers:get("host") or "-"
+                  local path = headers:get(":path") or "/"
+
+                  -- Align with Nginx's $scheme for this hop (cloudflared -> envoy is plain HTTP)
+                  ensure(headers, "x-downstream-scheme", "http")
+
+                  -- Preserve original incoming host/path
+                  ensure(headers, "x-original-authority", authority)
+                  ensure(headers, "x-original-path", path)
+
+                  -- Parse our proxy path format:
+                  --   /https://example.com/uri?qs
+                  --   /http://example.com/uri?qs
+                  local scheme, target_host, rest = string.match(path, "^/(https?)://([^/]+)(/.*)$")
+                  if scheme == nil then
+                    scheme, target_host = string.match(path, "^/(https?)://([^/]+)$")
+                    rest = "/"
+                  end
+
+                  if target_host ~= nil and target_host ~= "" then
+                    ensure(headers, "x-target-host", target_host)
+                  else
+                    ensure(headers, "x-target-host", "-")
+                  end
+
+                  -- Compute query fields from the original incoming path (matches request_uri)
+                  local qs = string.match(path, "%?(.*)$")
+                  if qs ~= nil and qs ~= "" then
+                    ensure(headers, "x-is-args", "?")
+                    ensure(headers, "x-args", qs)
+                    ensure(headers, "x-query-string", qs)
+                  else
+                    ensure(headers, "x-is-args", "")
+                    ensure(headers, "x-args", "-")
+                    ensure(headers, "x-query-string", "-")
+                  end
+                end
           # ---------------------------------------------------------
           # Dynamic Forward Proxy Filter
           # ---------------------------------------------------------
