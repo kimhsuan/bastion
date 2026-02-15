@@ -21,13 +21,13 @@ static_resources:
                   "@timestamp": "%START_TIME%"
                   "hostname": "%HOSTNAME%"
                   "status": "%RESPONSE_CODE%"
-                  "remote_addr": "%DOWNSTREAM_REMOTE_ADDRESS%"
+                  "remote_addr": "%DOWNSTREAM_DIRECT_REMOTE_ADDRESS_WITHOUT_PORT%"
                   "x_forwarded_for": "%REQ(X-FORWARDED-FOR)%"
                   "request_method": "%REQ(:METHOD)%"
                   "scheme": "%REQ(:SCHEME)%"
-                  "host": "%REQ(:HOST)%"
+                  "host": "%REQ(:AUTHORITY)%"
                   "server_port": "%DOWNSTREAM_LOCAL_PORT%"
-                  "request_uri": "%REQ(:PATH)%"
+                  "request_uri": "%REQ(X-ORIGINAL-PATH)%"
                   "is_args": "%REQ(:QUERY)%"
                   "args": "%REQ(:QUERY)%"
                   "query_string": "%REQ(:QUERY)%"
@@ -35,6 +35,7 @@ static_resources:
                   "bytes_sent": "%BYTES_SENT%"
                   "request_time": "%DURATION%"
                   "proxy_host": "%UPSTREAM_HOST%"
+                  "upstream_host": "%UPSTREAM_HOST%"
                   "upstream_status": "%RESPONSE_CODE%"
                   "upstream_response_time": "%RESP(X-ENVOY-UPSTREAM-SERVICE-TIME)%"
                   "upstream_addr": "%UPSTREAM_REMOTE_ADDRESS%"
@@ -54,6 +55,11 @@ static_resources:
                   safe_regex:
                     google_re2: {}
                     regex: "^/https://([^/]+)(/.*)?$"
+                request_headers_to_add:
+                - header:
+                    key: "x-original-path"
+                    value: "%REQ(:PATH)%"
+                  append_action: OVERWRITE_IF_EXISTS_OR_ADD
                 route:
                   cluster: dynamic_forward_proxy_cluster_https
                   host_rewrite_path_regex:
@@ -73,6 +79,11 @@ static_resources:
                   safe_regex:
                     google_re2: {}
                     regex: "^/http://([^/]+)(/.*)?$"
+                request_headers_to_add:
+                - header:
+                    key: "x-original-path"
+                    value: "%REQ(:PATH)%"
+                  append_action: OVERWRITE_IF_EXISTS_OR_ADD
                 route:
                   cluster: dynamic_forward_proxy_cluster_http
                   host_rewrite_path_regex:
