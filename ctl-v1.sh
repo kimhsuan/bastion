@@ -26,8 +26,9 @@ function stop() {
 
 function main() {
   check_docker
+  check_docker_network ${NETWORK_NAME} ${DOCKER_SUBNET}
   SERVICE=${service}
-  EXE=${COMPOSE_CMD}
+  EXE=$(get_compose_file_cmd ${SERVICE})
   echo ${EXE}
   case "${action}" in
   start)

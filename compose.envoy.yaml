@@ -1,0 +1,16 @@
+services:
+  envoy:
+    image: envoyproxy/envoy:v1.37.0
+    restart: always
+    networks:
+      net:
+    volumes:
+      - ./envoy/envoy.yaml:/etc/envoy/envoy.yaml:ro
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 100M
+        reservations:
+          cpus: '0.1'
+          memory: 10M
